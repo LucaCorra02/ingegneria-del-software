@@ -262,26 +262,21 @@ public class MockUtils {
 Esempio pratico applicato al testing di getPunti in sfidante: 
 
 ```java
-@Test  
-void testGetPunti (){  
-    Sfidante SUT = mock(Sfidante.class);  
-    when(SUT.getPunti()).thenCallRealMethod();  
-    List<Card> mano = List.of(  
-            Card.get(Rank.ACE, Suit.DIAMONDS),  
-            Card.get(Rank.ACE,Suit.CLUBS),  
-            Card.get(Rank.EIGHT,Suit.DIAMONDS)  
-    );  
-    
-    /* 
-	   when(SUT.getCards()).thenAnswer(
-		(Answer<Iterator<Card>>) invocation -> mano.iterator()
-	   );  
-    */
-    when(SUT.getCards()).thenAnswer(invocation -> mano.iterator());  
-    
-    assertThat(SUT.getPunti()).isEqualTo(20);  
-    assertThat(SUT.getPunti()).isEqualTo(20);  
-}
+ @ParameterizedTest
+    @CsvSource({
+        "AD AC 8D,20",
+        "AD 8D,19",
+        "AD AC KS,22"
+    })
+    void testGetPuntiParam(String str,Integer points){
+        var mano = CardUtility.fromStringList(str);
+        
+        Sfidante SUT = mock(Sfidante.class);
+        when(SUT.getPunti()).thenCallRealMethod();
+        when(SUT.getCards()).thenAnswer(invocation -> mano.iterator());
+        
+        assertThat(SUT.getPunti()).isEqualTo(points);
+    }
 ```
 
 
