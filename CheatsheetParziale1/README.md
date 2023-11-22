@@ -71,6 +71,24 @@ Esempio :
     }
 
 ```
+Esempio con mock:
+```java 
+  @Mock
+    private List<Card> mano;
+    @InjectMocks
+    private Player SUT = new Player("P1");
+
+    @Test
+    void iterableTest(){
+        var carte = List.of(
+                Card.get(Rank.ASSO,Suit.COPPE),
+                Card.get(Rank.CAVALLO,Suit.BASTONI),
+                Card.get(Rank.CINQUE,Suit.DENARI)
+        );
+        doReturn(carte.iterator()).when(mano).iterator();
+        assertThat(SUT).containsExactlyInAnyOrderElementsOf(carte);
+    }
+```
 
 - controlli su `Eccezioni lanciate`:
 ```java
