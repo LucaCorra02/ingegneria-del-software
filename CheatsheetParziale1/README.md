@@ -3,36 +3,12 @@
 ### Indice
 
 - [Testing](#testing)
-	- Assert su tipi semplici
-	- Assert su iterable
-	- Assert su eccezioni
 - [Testing parametrico](#testing-parametrico)
-	- Parametrizzare ENUM
 - [Mocking](#mocking)
-	- `when().thenReturn()`
-	- `when().thenAnswer()`: per iteratori
-	- `doReturn().when()`: per metodi `void`
-	- `thenCallRealMethod()`: per interfacce
-	- `verify`: numero chiamate
-	- `inOrder`: ordine chiamate
-	- `ArgumentCaptor`: parametri chiamate
-- [Spy](#spy)
-	- `spy()`
 - [Dependency injection](#dependency-injection)
-	- `@InjectMocks`
-	- `@Mock`
-- [Decoratori utili](#decoratori-utili)
-	- `@BeforeEach`
-	- `@Nested`
-	- `@MockitoSettings(strictness = Strictness.LENIENT)`
+- [Decoratori `BeforeEach`, `Nested`](#decoratori-beforeeach-nested)
 - [Pattern](#pattern)
-	- Chain of responsibility
-	- Flyweight
-	- Iterator
-	- Null Object
-	- Singleton
-	- Strategy
-- _Esempi di utilizzo_:
+- Esempi di utilizzo:
 	- [MazziereTest.java](./CodiceEsempi/MazziereTest.java) _(parametrized test, mock, dependency injection)_
 	- [SfidanteTest.java](./CodiceEsempi/SfidanteTest.java) _(parametrized test, mock, dependency injection, thenAnswer)_
 	- [FattoriaTest.java](./CodiceEsempi/FattoriaTest.java) _(doAnswer, spy)_
@@ -82,7 +58,26 @@ assertThat(puffo.iterator()).toIterable()...
 .containsExactly(elem1, elem2, elem3);
 .containsExactlyInAnyOrder(elem1, elem2, elem3);
 .hasSize(3);
-.containsExactly(list.toArray(new Object[0]));
+```
+
+Esempio : 
+```java
+void newPokerHandTest(){
+	PokerHand ph = new PokerHand(
+		List.of(
+			Card.get(Rank.ACE, Suit.Clubs),
+			Card.get(Rank.Two, Suit.Clubs),
+			......
+		
+		)
+	);
+
+	asserThat((Iterable<Card>) ph ).containsExactlyInAnyOrder(
+			Card.get(Rank.ACE, Suit.Clubs),
+			Card.get(Rank.Two, Suit.Clubs),
+			......
+	)
+}
 ```
 
 - controlli su `Eccezioni lanciate`:
@@ -148,112 +143,93 @@ public static Card toCard(String cardString) {
 void carteTest(String carta) {
     assertThat(...).isEqualTo(TestCardUtils.toCard(carta));
 }
-
-@ParameterizedTest
-@CsvSource({
-	"3C 3S AC 5B 7S 2C",
-	"7S RC",
-	"AD AB 3B"
-    })
-    void iterableTest(String cards) {
-        List<Card> cardList = TestCardUtils.fromStringList(cards);
-        ...
-        assertThat((Iterable<Card>) SUT).containsExactly(cardList.toArray(new Card[0]));
-    }
 ```
+## Mocking vs Spy
+
+
+- <b><u>Spy</u></b> := Permette di creare spy objects a partire da oggetti reali. <b><u> Si ottiene un oggetto che ha le stesse funzioni dell'oggetto originale</u></b> , ma che può essere utilizzato per eseguire il tracciamento delle chiamate ai suoi metodi  . 
+
+   <b><u>Un oggeto spy continuerà a chiamare il metodo reale, se non diversamente specificato</u></b>. 
+   
+   Quando devo usare uno spy mocckato utilizzo la seguente sintassi, oppure quando devo <b><u>testare un metodo con parametro di ritorno void </u></b>  : 
+
+```java
+	doReturn(iterator).when(SUT).getCards();
+```
+
+- <b><u>Mock</u></b> := si tratta di un oggetto utilizzato per creare Test Double a partire da una determinata classe o interfaccia.
+   L'oggetto creato si presenta con la stessa interfaccia del metodo mockato, ma fornisce <b><u>un implementazione minimale</u></b>. Questo si limiterà a restituire dei valori di default per il tipo di ritorno del metodo, oppure a non fare nulla se il metodo è void. 
+
+<span style=color:red>N.B</span> = Quando mocko un oggetto lo svuoto completamente. Dovrò dunque andare ad esplicitare i metodi dell'oggetto reale che voglio andare ad utilizzare tramite `thenCallRealMethod()`.
+
 
 ## Mocking
 
-Il mocking è la costruzione di **oggetti finti** (NON da testare), da utilizzare per testare oggetti che comunicano (o che hanno come dipendenza) l'oggetto finto.
-
-Gli oggetti mockati sono **"svuotati"**, non hanno nessun comportamento o stato se non esplicitamente specificato con `when`.
+Il mocking è la costruzione di oggetti finti (gli oggetti NON da testare), da utilizzare per testare oggetti che comunicano (o che hanno come dipendenza) l'oggetto finto.
 
 ```java
-import static org.mockito.Mockito.*;
+import org.mockito.Mockito;
 
 // oggetto finto, dipendenza dell'oggetto da testare
-Puffo puffoMockato = mock(Puffo.class);
+Puffo puffoMockato = Mockito.mock(Puffo.class);
 
 // lancia sempre l'eccezione
-when(puffoMockato.err()).thenThrow(new IllegalArgumentException());
+Mockito.when(puffoMockato.err()).thenThrow(new IllegalArgumentException());
 
 // restituisce sempre blu
-when(puffoMockato.colore()).thenReturn("Blu");
+Mockito.when(puffoMockato.colore()).thenReturn("Blu");
 
 // restituisce alla prima chiama blu, poi verde e poi sempre giallo
-when(puffoMockato.colore()).thenReturn("Blu", "Verde", "Giallo");
+Mockito.when(puffoMockato.colore()).thenReturn("Blu", "Verde", "Giallo");
 
 // restituire uno alla volta gli elementi di una lista
-when(mazziereMockato.hit()).thenAnswer(AdditionalAnswers.returnsElementsOf(lista));
-```
+Mockito.when(mazziereMockato.hit())
+        .thenAnswer(AdditionalAnswers.returnsElementsOf(lista));
 
-Un **caso particolare** in cui è quando deve essere restituito un oggetto che deve essere _"resettato"_ ad ogni asserzione (come un **iteratore**). Un semplice `thenReturn(iterator)` funziona, ma tutte le asserzioni utilizzeranno lo stesso iteratore, facendo funzionare solo la prima.
-
-```java
-when(mockedClass.iterator()).theReturn(List.of(...).iterator());
-
-// funziona
-assertThat(SUT.metodoCheUsaIterator()).isEqualTo(20);
-// non funziona, usa lo stesso iteratore, che è "finito"
-assertThat(SUT.metodoCheUsaIterator()).isEqualTo(20);
-```
-
-Utilizzare una **risposta personalizzata** (`answer`) risolve questo problema:
-
-```java
-when(mockedClass.iterator()).thenAnswer(
-	invocation -> List.of(...).iterator()
-);
-
-assertThat(SUT.metodoCheUsaIterator()).isEqualTo(20);
-assertThat(SUT.metodoCheUsaIterator()).isEqualTo(20);
-```
-
-Oltre alla sintassi `when().thenReturn()` o `when().thenAnswer()` è possibile utilizzare anche `doReturn().when()` o `doAnswer.when()`.
-
-Con quest'ultima sintassi è possibile simulare anche il comportamento di metodi `void`, eseguendo **codice arbitrario** (ed avendo a disposizione gli **argomenti della chiamata**, `invocation.getArguments()`).
-
-```java
-// setNome() è void
 
 // simulare la modifica dello stato della classe mockata
 // dopo che viene chiamato mazziereMockato.setNome() viene impostato
 // come risultato di getNome il primo argomento di setNome()
-doAnswer(invocation -> {
+Mockito.doAnswer((Answer<Void>) invocation -> {
 	Object[] args = invocation.getArguments();
 	String nome = (String) args[0];
 	when(mazziereMockato.getName()).thenReturn(nome);
 	return null;
-}).when(mazziereMockato).setNome(anyString());
+}).when(mazziereMockato).setNome(Mockito.anyString());
 ```
 
-Il mocking è utile anche per testare metodi **default di interfacce** o classi sono **parzialmente implementate**, utilizzando solo alcuni metodi reali (`thenCallRealMethod`).
+Il mocking è utile anche per testare metodi default di interfacce.
 
 ```java
 // interfaccia finta
-Interfaccia inter = mock(Interfaccia.class);
+Interfaccia inter = Mockito.mock(Interfaccia.class);
 
 // altri metodi interfaccia usati nel default da testare
-when(inter....()).thenReturn(...);
+Mockito.when(inter....()).thenReturn(...);
 
 // chiamare metodo di default vero
-when(inter.metodoVero()).thenCallRealMethod();
+Mockito.when(inter.metodo()).thenCallRealMethod();
 
-assertThat(inter.metodoVero()).isEqualTo(...);
+assertThat(inter.metodo()).isEqualTo(...);
 ```
 
-È possibile utilizzare i mock per controllare le **invocazioni dei metodi** di un oggetto mockato, attraverso `verify`:
+<u><b>Verify, viene utilizzato per controllare quante volte viene chiamato un certo metodo su un qualunque oggetto spy o mock</u></b>.
 
 ```java
-verify(mockedclass, howMany).methodname(args);
+verify(mockedclass, howMany).methodname(args)
 ```
 
-Il parametro `howmany` specifica il **numero di volte** che il metodo dell'oggetto mockato deve essere **chiamato** durante l'esecuzione del test. È possibile utilizzare:
- - `times(n)` = verifica che `methodname()` si stato chiamato `n` volte.
- - `never()` = verifica che `methodname()` non sia mai stato chiamato
- - `atLeastOnece()` = verifica che `methodName()` sia chiamato almeno una volta.
+il parametro `howmany`, <b><u>specifica il numero di volte che il metodo associato all'oggetto mockato deve essere chiamato</u></b> durante l'esecuzione del test. Abbiamo diverse opzioni : 
+ - `times(n)` = verifica che `methodname()` si stato chiamato `n` volte. 
+ - `never` = verifica che `methodname()` non sia mai stato chiamato 
+ - `atLeastOnece()` = verifica che `methodName()` sia chiamato almeno una volta. 
  - `atLeast(n)` = verifica che `methodName()`, venga chiamato almeno `n` volte
- - `atMost(n)` = verifica che `methodName()`, venga chiamato al massimo `n` volte
+ - `atMost(n)` = verifica che `methodName()`, venga chiamato al massimo `n` volte 
+
+`inOrder()` := <b><u>Verifica l'ordine delle occorenze delle chiamate ai metodi di un oggetto</u></b> . 
+```java
+InOrder inO = inOrder(mock1, mock2, ...) inO.verify...
+```
 
 ```java
 // verificare che il metodo met di oggettoFinto sia chiamato tot volte
@@ -261,55 +237,65 @@ Mockito.verify(oggettoFinto, Mockito.times(4)).met();
 Mockito.verify(oggettoFinto, Mockito.atLeast(2))).met();
 ```
 
-È possibile verificare **l'ordine delle chiamate**, attraverso `inOrder`:
+## Usare iteratore nei test
+
+<b><u>Quando voglio andare ad usare un iteratore in un test mokkandolo</u></b>, mi devo ricordare di usare il seguente codice : 
 
 ```java
-// creare un oggetto inOrder con parametro tutti i mock che useremo
-InOrder inOrd = inOrder(mock1, mock2, ...);
-
-// queste chiamate dovranno avvenire in questo ordine
-inOrder.verify(mock1).buongiorno();
-inOrder.verify(mock1).saluta();
-inOrder.verify(mock2).ciao();
+import static org.mockito.Mockito.when;  
+import org.junit.jupiter.api.extension.ExtendWith;  
+import org.mockito.junit.jupiter.MockitoExtension;  
+import org.mockito.stubbing.Answer;  
+import java.util.Iterator;  
+import java.util.List;  
+  
+public class MockUtils {  
+    @SafeVarargs  
+    public static <T> void whenIterated(Iterable<T> p, T... d) {  
+        when(p.iterator()).thenAnswer(
+	        (Answer<Iterator<T>>) invocation -> List.of(d).iterator()
+	    );  
+    }  
+  
+}
 ```
-
-È possibile verificare i **parametri con cui avvengono le chiamate**, attraverso `ArgumentCaptor`:
+Esempio pratico applicato al testing di getPunti in sfidante: 
 
 ```java
-ArgumentCaptor<Puffo> arg = ArgumentCaptor.forClass(Puffo.class); verify(mock).doSomething(arg.capture());
-
-assertThat(arg.getValue().getColore()).isEqualTo("blu");
+@Test  
+void testGetPunti (){  
+    Sfidante SUT = mock(Sfidante.class);  
+    when(SUT.getPunti()).thenCallRealMethod();  
+    List<Card> mano = List.of(  
+            Card.get(Rank.ACE, Suit.DIAMONDS),  
+            Card.get(Rank.ACE,Suit.CLUBS),  
+            Card.get(Rank.EIGHT,Suit.DIAMONDS)  
+    );  
+    
+    /* 
+	   when(SUT.getCards()).thenAnswer(
+		(Answer<Iterator<Card>>) invocation -> mano.iterator()
+	   );  
+    */
+    when(SUT.getCards()).thenAnswer(invocation -> mano.iterator());  
+    
+    assertThat(SUT.getPunti()).isEqualTo(20);  
+    assertThat(SUT.getPunti()).isEqualTo(20);  
+}
 ```
 
-## Spy
-
-Lo **spy** è una tecnica simile al _mocking_, ma che al posto di utilizzare oggetti completamente _finti_ e _"svuotati"_, permette di creare _spy objects_ a partire da oggetti reali, ovvero **un oggetto che ha le stesse funzioni dell'oggetto originale**.
-
-Questo oggetto può essere utilizzato (esattamente come per il mocking) per eseguire il **tracciamento delle chiamate** (`verify`, ...) ai suoi metodi ed eventualmente **mockare** (`when`...) alcuni comportamenti.
-
-Un oggetto spy continuerà a chiamare i **metodi reali**, se non **diversamente specificato**.
-
-```java
-Puffo puffo = spy(new Puffo());
-
-puffo.saluta(); // viene chiamato il metodo vero
-
-when(puffo.getColore()).thenReturn("blu"); // viene mockato solo questo metodo
-
-// sono utilizzabili tutte le tecniche utilizzabili con oggetti mockati
-verify(...);
-assertThat(...);
-```
 
 ## Dependency injection
 
-Per facilità di testing, spesso è necessario sostituire le **dipendenze** dell'oggetto da testare con **oggetti finti**.
+Per facilità di testing, è necessario sostituire le dipendenze dell'oggetto da testare con oggetti finti.<br>
+InjectMocks = <b><u>prova a inniettare quello che voglio in due modi</u></b> : 
+ - <b><u>Con il costruttore</u></b>, prende quello più largo, con più prametri. Dove ho definito un parametro li passa quello, altrimenti passa un null. 
 
-Mockito mette a disposizione il decoratore `@InjectMocks`, che appunto **inietta** delle dipendenze dentro l'oggetto, in due modi:
- - attraverso il **costruttore**, prende quello più _"largo"_, con più parametri. Se è presente un `@Mock` che rispetta l'argomento viene passato quello, altrimenti `null`
- - quando non esiste un costruttore Mockito sfrutta le **reflections** (i campi da iniettare **non devono** essere `final`), iniettando le dipendenze
+ - Posso anche esplicitare attraverso il costrutto new l'oggetto INjectMocks. 
+ Lo uso quando non ho un costruttore che soddisfa l'injection che voglio fare. 
 
-Per utilizzare `@InjectMocks` la classe deve avere il **decoratore** `@ExtendWith(MockitoExtension.class)`.
+Se trova un costruttore, allora la injection dovrebbe andare a buon fine. 
+( nel nostro caso falirebbe la compilazione se non setto la strategia esplicitamente).
 
 ```java
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -323,7 +309,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class MazziereTest {
 
     @Mock
-    Dipendenza dip; // dipendenza che verrà iniettata nell'oggetto SUT
+    Dipendenza dip; // dipendenza che verrà sostituita nell'oggetto SUT
 
     @InjectMocks
     Puffo SUT; // oggetto da testare
@@ -331,10 +317,53 @@ public class MazziereTest {
 	...
 }
 ```
+esempio : 
 
-## Decoratori utili
+```java
+public class gicatroe(){
 
-In alcune istruzioni siano **comuni a tutti i test**, è possibile utilizzare un metodo decorato con `@BeforeEach`.
+private final List<Card> mano; 
+private final Mazziere banco;
+
+
+public void gioca(){
+	//controllo anche di non chiamare la strategia se ho già sballato.
+	// se non sono arrivato ancora a 21 chiedo una carta. 
+	while(getPunti() < 21 && strategia.chiediCarta()){ 
+		vat carta = banco.draw();
+		mano.add(carta);
+	}
+}
+}
+```
+
+```java
+public testGioca{
+
+	@Mock Mazziere banco; 
+	@Mock Strategia strat;
+	@InjectsMock Sfidante SUT; 
+
+	@test
+	void giocaTest(){
+		when(strat.chiediCarta()).thenReturn(true,true,false);
+		when(banco.draw()).thenReturn(Card.get(Rank.ACE,SUITS.club))
+		//ritorna sempre l'asso.
+		
+		SUT.setStrategia(strat);
+		SUT.carteIniziali();
+		SUT.gioca
+		
+		asserThat(SUT.getCard()).toIterable().hasSize(4);
+		verify(banco,times(4)).draw(); //controllo che drwa è stato chiamto 4 volte, banco è un oggetto mockato. 
+	
+	}
+}
+```
+
+## Decoratori `BeforeEach`, `Nested`
+
+In alcune istruzioni siano comuni a tutti i test, è possibile utilizzare un metodo decorato con `@BeforeEach`.
 
 ```java
 import org.junit.jupiter.api.BeforeEach;
@@ -347,7 +376,7 @@ void init() {
 }
 ```
 
-È possibile **racchiudere** alcuni test di una classe in alcuni **gruppi**, ad esempio per eseguire un `@BeforeEach`, creando una **classe innestata** nella classe di test decorata con `@Nested`.
+È possibile racchiudere alcuni test di una classe in alcuni gruppi, ad esempio per eseguire un `@BeforeEach`, creando una classe innestata nella classe di test decorata con `@Nested`.
 
 ```java
 import org.junit.jupiter.api.Nested;
@@ -385,24 +414,6 @@ class PuffoTest {
 		assertThat(puffo.colore()).isEqualTo("blu");
 	}
 
-}
-```
-
-Viene sollevata un eccezione in caso vengano dichiarati delle STUB (`when(...)`) **non necessarie**, che non vengono mai chiamate. Sono possibili dei casi in cui _non si è certi_ di quale oggetto verrà chiamato, quindi alcuni metodi potrebbero **non essere** chiamati. Per non alzare questa eccezione è possibile utilizzare `@MockitoSettings(strictness = Strictness.LENIENT)`.
-
-```java
-@MockitoSettings(strictness = Strictness.LENIENT)
-class Test {
-	void gameWinnerTest(...) {
-	    when(gioc1.getName()).thenReturn("g1");
-	    when(gioc2.getName()).thenReturn("g2");
-
-		...
-
-		// verrà chiamato getName solo su uno tra g1 e g2
-		// quindi verrebbe alzata l'eccezione UnnecessaryStubbingException
-	    assertThat(getWinner().getName()).isEqualTo(...);
-	}
 }
 ```
 
