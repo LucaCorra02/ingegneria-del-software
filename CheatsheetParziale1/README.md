@@ -330,6 +330,7 @@ public testGioca{
 	@Mock Mazziere banco; 
 	@Mock Strategia strat;
 	@InjectsMock Sfidante SUT; 
+	
 
 	@test
 	void giocaTest(){
