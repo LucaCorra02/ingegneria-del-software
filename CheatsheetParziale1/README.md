@@ -334,9 +334,16 @@ public testGioca{
 	@test
 	void giocaTest(){
 		when(strat.chiediCarta()).thenReturn(true,true,false);
-		when(banco.draw()).thenReturn(Card.get(Rank.ACE,SUITS.club))
+
 		//ritorna sempre l'asso.
+		when(banco.draw()).thenReturn(Card.get(Rank.ACE,SUITS.club))
 		
+		//oppure
+		 when(banco.getCarta()).thenAnswer(AdditionalAnswers.returnsElementsOf(
+                CardUtility.fromStringList(cards)
+            )
+        );
+
 		SUT.setStrategia(strat);
 		SUT.carteIniziali();
 		SUT.gioca
