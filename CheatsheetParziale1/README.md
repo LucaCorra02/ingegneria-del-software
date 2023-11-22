@@ -62,22 +62,14 @@ assertThat(puffo.iterator()).toIterable()...
 
 Esempio : 
 ```java
-void newPokerHandTest(){
-	PokerHand ph = new PokerHand(
-		List.of(
-			Card.get(Rank.ACE, Suit.Clubs),
-			Card.get(Rank.Two, Suit.Clubs),
-			......
-		
-		)
-	);
+   @Test
+    void provaLista(){
+        var li = CardUtility.fromStringList("KC AC");
+        when(banco.getCarta()).thenAnswer(AdditionalAnswers.returnsElementsOf(li));
+        SUT.carteIniziali();
+        assertThat(SUT.getCards()).toIterable().containsExactlyElementsOf(li);
+    }
 
-	asserThat((Iterable<Card>) ph ).containsExactlyInAnyOrder(
-			Card.get(Rank.ACE, Suit.Clubs),
-			Card.get(Rank.Two, Suit.Clubs),
-			......
-	)
-}
 ```
 
 - controlli su `Eccezioni lanciate`:
