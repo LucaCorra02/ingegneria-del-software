@@ -417,12 +417,14 @@ class PuffoTest {
 }
 ```
 
-<span style=color:red>hash map vs tree map</span>
+## hash map vs tree map
+
 <b><u>Preferire una tree map quando gli inserimenti e cancellazioni dominano rispetto alle ricerche e quando abbiamo un ordine di visualizzazione fisso tra i vari presenter</u></b>. L'ordine dei miei oggetti non dipende dalla presentazione, ma è fisso.
 
 Altrimenti viene preferita un hash map. 
 
-<span style=color:red>Record</span>
+## Record
+
 <b><u>I record creano delle classi immutabili solo se i tipi che li abbiamo fornito come parametri sono come anche essi immutabili.</u></b>
 
 
@@ -443,7 +445,8 @@ Devo ricordarmi di fare la new, in quanto la collezzione di oggetti che ci ritor
 return new ArrayList(mappa.values())
 ```
 
-  <span style=color:red>Test della read file</span>
+## Test della read file
+
 ``` java
 Model SUT = new Model();
 SUT.readFile();
@@ -455,7 +458,8 @@ asserThat(trains).extracting("code","destination")
 //prendo dalla lista solo due campi e controllo che sia contenuta una tupla con quei campi. 
 ```
 
-  <span style=color:red>Test di un outputPresente</span>
+  ## Test di un outputPresente
+  
   Solitamente non vado a creare il record dell'oggetto che voglio che venga displaiato. 
   ``` java
 Departure view = mock(...)
