@@ -417,6 +417,57 @@ class PuffoTest {
 }
 ```
 
+<span style=color:red>hash map vs tree map</span>
+<b><u>Preferire una tree map quando gli inserimenti e cancellazioni dominano rispetto alle ricerche e quando abbiamo un ordine di visualizzazione fisso tra i vari presenter</u></b>. L'ordine dei miei oggetti non dipende dalla presentazione, ma è fisso.
+
+Altrimenti viene preferita un hash map. 
+
+<span style=color:red>Record</span>
+<b><u>I record creano delle classi immutabili solo se i tipi che li abbiamo fornito come parametri sono come anche essi immutabili.</u></b>
+
+
+<span style=color:red>Package di observable e observer</span>
+Observable e Observer saranno nello stesso package del model
+
+<span style=color:red>Mappe</span>
+Quando uso il metodo sulle mappe:
+
+``` c 
+return mappa.values()
+```
+
+Devo ricordarmi di fare la new, in quanto la collezzione di oggetti che ci ritorna non è una copia, ma sono quelli originali. 
+<b><u>Se la mappa è composta da elementi immutabili non devo fare una deep copy, ma basta una copia superficiale del contenitore </u></b>(altrimenti dovrei creare una copia di ogni oggetto, copio il contenuto) : 
+
+``` c 
+return new ArrayList(mappa.values())
+```
+
+  <span style=color:red>Test della read file</span>
+``` java
+Model SUT = new Model();
+SUT.readFile();
+List<Train> trains = SUT.getState();
+assertThat(trains.size()).isEqualsTo(20);
+
+asserThat(trains).extracting("code","destination")
+	.contains(tuple("TN 10471","Milano")) 
+//prendo dalla lista solo due campi e controllo che sia contenuta una tupla con quei campi. 
+```
+
+  <span style=color:red>Test di un outputPresente</span>
+  Solitamente non vado a creare il record dell'oggetto che voglio che venga displaiato. 
+  ``` java
+Departure view = mock(...)
+DeparturePresenter SUT = new DeparturePresenter(view);
+Train1 train1 = mock(Train.class)
+when(train1.toString()).thenReturn("Cod 1 Milano 14:22 10")
+
+SUT.update(List.of(train1));
+verify(view).set(0,"Cod 1 Milano 14:12 10")
+
+```
+
 ## Pattern
 
 - [Chain of responsability](./Pattern/ChainOfResponsability.md)
